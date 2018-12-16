@@ -242,14 +242,14 @@ save_pixel:
 	#minRGB is now found, the only job left to do is now to save the pixel of coordinates (t0,t1) to output
 	mul	$t8,	$t0,	3
 
-	move	$t9,	$s4
-	sb	$t9,	outBuf($t8)
+	#move	$t9,	$s4
+	sb	$s4,	outBuf($t8)
 	addiu	$t8, 	$t8,	1
-	move	$t9,	$s5
-	sb	$t9,	outBuf($t8)
+	#move	$t9,	$s5
+	sb	$s5,	outBuf($t8)
 	addiu	$t8, 	$t8,	1
-	move	$t9,	$s6
-	sb	$t9,	outBuf($t8)
+	#move	$t9,	$s6
+	sb	$s6,	outBuf($t8)
 
 filter_next_pixel_x:
 	addiu	$t0,	$t0,	1	# X_filtering ++ ; if < width then calculate maxXc and minXc, zero out max colors, Y's stay the same
@@ -270,18 +270,18 @@ filter_next_pixel_y:
 	li	$v0,	15
 	lw	$a0,	idOutput
 	la	$a1,	outBuf
-	move	$a2,	$s0
-	mul	$a2,	$a2,	3
+	#move	$a2,	$s0
+	mul	$a2,	$s0,	3
 	addu	$a2,	$a2,	$t9
 	syscall
 	bltz	$v0,	quit				# error
 
-	beq	$t1,	$s1,	quit		# end the program if its Y is now maximal (==height)
 
+	beq	$t1,	$s1,	quit		# end the program if its Y is now maximal (==height)
 	li	$t0,	0				# we start in the beginning of new line
 	##div	$t8,	$s2,	2
-	addu	$t8,	$s7,	$t1
-	bge	$s3,	$t8,	min_Y_c			# don't load any next lines into the buf
+	#addu	$t8,	$s7,	$t1
+	blt	$s7,	$t1,	min_Y_c			# don't load any next lines into the buf
 
 
 	div	$t8,	$s2
