@@ -241,80 +241,74 @@ check_next_pixel:
 save_pixel:
 	#minRGB is now found, the only job left to do is now to save the pixel of coordinates (t0,t1) to output
 	mul	$t8,	$t0,	3
-
-	#move	$t9,	$s4
 	sb	$s4,	outBuf($t8)
 	addiu	$t8, 	$t8,	1
-	#move	$t9,	$s5
 	sb	$s5,	outBuf($t8)
 	addiu	$t8, 	$t8,	1
-	#move	$t9,	$s6
 	sb	$s6,	outBuf($t8)
 
 filter_next_pixel_x:
-	addiu	$t0,	$t0,	1	# X_filtering ++ ; if < width then calculate maxXc and minXc, zero out max colors, Y's stay the same
-	blt	$t0,	$s0,	min_X_c
-	addiu	$t1,	$t1,	1	# otherwise we filtered the whole line and now we need to increment filtered pixel's Y and set its X to 0
-	li	$t0,	0
-	li	$t7,	0
-	lb	$t9,	padding
+	addiu	$t0,	$t0,	1			# increment X coordinate of filtered pixels
+	blt	$t0,	$s0,	min_X_c	#	if X < width then calculate maxXc and minXc, zero out max colors, Y coord stay the same
+	li	$t7,	0							# temporary variable for add_pad loop
+	lb	$t9,	padding				# load size of padding to $t9
 add_pad:
 	beq	$t7,	$t9,	filter_next_pixel_y
 	addiu	$t7,	$t7,	1
-	addiu	$t8, 	$t8,	1
+	addiu	$t8, 	$t8,	1			# increment address
 	sb	$zero,	outBuf($t8)
-	j	add_pad
+	j	add_pad								# repeat loop
 
 filter_next_pixel_y:
-
+	# load filtered line to output buffer
 	li	$v0,	15
 	lw	$a0,	idOutput
 	la	$a1,	outBuf
-	#move	$a2,	$s0
-	mul	$a2,	$s0,	3
-	addu	$a2,	$a2,	$t9
+	mul	$a2,	$s0,	3				# 3 * width
+	addu	$a2,	$a2,	$t9		# add padding to total length of line
 	syscall
 	bltz	$v0,	quit				# error
 
-
+	# move to next row
+	addiu	$t1,	$t1,	1			# increment Y coordinate of filtered pixels
 	beq	$t1,	$s1,	quit		# end the program if its Y is now maximal (==height)
-	li	$t0,	0				# we start in the beginning of new line
-	##div	$t8,	$s2,	2
-	#addu	$t8,	$s7,	$t1
-	blt	$s7,	$t1,	min_Y_c			# don't load any next lines into the buf
+	li	$t0,	0							# we start in the beginning of new line
+	blt	$s7,	$t1,	min_Y_c	# don't load any new next lines into the buf
 
-
-	div	$t8,	$s2
+# load new line to input buffer
+	# calculate place for new line in input buffer
+	div	$t4,	$s2
 	mfhi	$t8
 	mul	$t8,	$t8,	$s0
 	mul	$t8,	$t8,	3
 
-	li	$v0,	14				# read row data
+	# reading new line from file
+	lw 	$a0,	idInput
+	li	$v0,	14
 	la	$a1,	buf($t8)
-	mul	$a2,	$s0,	3
+	mul	$a2,	$s0,	3				# 3 * width
 	syscall
-	###bne	$v0,	$s3,	quit			# error
-	addiu	$s3,	$s3,	1
+	mul $t9,	$s0,	3				# temporary variable to check correctness of syscall
+	bne	$v0,	$t9,	quit		# error
+	addiu	$s3,	$s3,	1			# increment index of top row in input buffer
 
-	li	$v0,	14				# read padding
+	li	$v0,	14						# read padding
 	la	$a1,	pad
 	move	$a2,	$t9
 	syscall
-	bne	$v0,	$t9,	quit			# error
+	bne	$v0,	$t9,	quit		# error
 
-	j	min_Y_c					# on to the next line
+	j	min_Y_c								# start filtering new line
 
 quit:
 #close_out:
-	li	$v0,	16			# close outfile
-	sw	$t0,	idOutput
-	move	$a0,	$t0
+	li	$v0,	16						# close outfile
+	lw	$a0,	idOutput
 	syscall
 close_in:
-	li	$v0,	16			# close infile
-	sw	$t0,	idInput
-	move	$a0,	$t0
+	li	$v0,	16						# close infile
+	lw	$a0,	idInput
 	syscall
 #exit:
-	li	$v0,	10			# exit
+	li	$v0,	10						# exit
 	syscall
