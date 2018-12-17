@@ -41,20 +41,20 @@ main:
 
 inputCorrection:
 	lb $t2, inputFile($t0)
-	addiu $t0, $t0, 1			#incrementing as long as it finds '\n'
+	addiu $t0, $t0, 1			# incrementing as long as it finds '\n'
 	bne $t2, '\n' , inputCorrection
 
 	#after we find it :
-	subiu $t0, $t0, 1			#the actual change we're making
+	subiu $t0, $t0, 1			# the actual change we're making
 	sb $zero, inputFile($t0)
 	li $t0, 0
 
 outputCorrection:
 	lb $t2, outputFile($t0)
-	addiu $t0, $t0, 1			#incrementing as long as it finds '\n'
+	addiu $t0, $t0, 1			# incrementing as long as it finds '\n'
 	bne $t2, '\n' , outputCorrection
 	#after we find it :
-	subiu $t0, $t0, 1			#the actual change we're making
+	subiu $t0, $t0, 1			# the actual change we're making
 	sb $zero, outputFile($t0)
 
 
@@ -166,11 +166,11 @@ filter_prep:
 	sw	$s0,	idInput
 	sw	$s1,	idOutput
 	sw	$s5,	padding
-	move	$s0,	$s3			#width
-	move	$s1,	$s4			#height
-	move	$s3,	$s6			#index of top row
-	div	$s7,	$s2,	2		#half of box size
-	
+	move	$s0,	$s3			# width
+	move	$s1,	$s4			# height
+	move	$s3,	$s6			# index of top row
+	div	$s7,	$s2,	2		# half of box size
+
 	li	$t0,	0
 	li	$t1,	0
 	li	$t2,	0
@@ -266,7 +266,7 @@ filter_next_pixel_y:
 	li	$t0,	0		# we start in the beginning of new line
 	ble	$t1,	$s7,	min_Y_c	# don't load any new next lines into the buf
 	addiu	$t8,	$s3,	1
-	beq	$t8,	$s1,	min_Y_c	
+	beq	$t8,	$s1,	min_Y_c
 
 # load new line to input buffer
 	# calculate place for new line in input buffer
