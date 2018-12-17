@@ -1,17 +1,15 @@
 .data
-
+idInput:	.word	0
+idOutput:	.word	0
+padding:	.word	0
 buf:		.space 	55000		# 2000 * 3 * 9 (2000 - max. width, 3 - three colors per pixel, each need 1 byte, 9 - max. mask )
 outBuf:		.space	6100
 pad:		.space	3
-idInput:	.word	1
-idOutput:	.word	1
-padding:	.space	1
 inputMess:	.asciiz "Name of input file\n"
 outputMess:	.asciiz "Name of output file\n"
 maskSize:	.asciiz "Size of filter mask\n"
 inputFile:	.space	128
 outputFile:	.space	128
-
 .text
 main:
 	li 	$v0, 	4
@@ -43,20 +41,20 @@ main:
 
 inputCorrection:
 	lb $t2, inputFile($t0)
-	addiu $t0, $t0, 1		#incrementing as long as it finds '\n'
+	addiu $t0, $t0, 1			#incrementing as long as it finds '\n'
 	bne $t2, '\n' , inputCorrection
 
 	#after we find it :
-	subiu $t0, $t0, 1		#the actual change we're making
+	subiu $t0, $t0, 1			#the actual change we're making
 	sb $zero, inputFile($t0)
 	li $t0, 0
 
 outputCorrection:
 	lb $t2, outputFile($t0)
-	addiu $t0, $t0, 1		#incrementing as long as it finds '\n'
+	addiu $t0, $t0, 1			#incrementing as long as it finds '\n'
 	bne $t2, '\n' , outputCorrection
 	#after we find it :
-	subiu $t0, $t0, 1		#the actual change we're making
+	subiu $t0, $t0, 1			#the actual change we're making
 	sb $zero, outputFile($t0)
 
 
@@ -143,23 +141,20 @@ read_initial_rows:
 	syscall
 	# if end of file ( $v0 == 0 ) was read then this means there are less than box rows and we need to end loop
 	beqz	$v0,	filter_prep
-	bne	$v0,	$a2,	quit			# error
+	bne	$v0,	$a2,	quit		# error
 
-	li	$v0,	14				# read padding
+	li	$v0,	14			# read padding
 	la	$a1,	pad
 	move	$a2,	$s5
 	syscall
-	bne	$v0,	$s5,	quit			# error
+	bne	$v0,	$s5,	quit		# error
 
 	move	$s6,	$t0
 	addiu	$t0,	$t0,	1
 	blt	$t0,	$s2,	read_initial_rows
 
 filter_prep:
-# s0 - infile descr, s1 - outfile descr, s2 - box size,
-# s3 - width, s4 - height, s5 - padding in Bytes, $s6 - index of top row in buffer
-
-# nowe oznaczenia - s0 - width, s1 - height, s2 - boxsize, s3 - index of top row,
+# s0 - width, s1 - height, s2 - boxsize, s3 - index of top row,
 # s4, s5, s6 - BGR, s7 - half of boxsize
 
 
@@ -167,13 +162,15 @@ filter_prep:
 # t2 - minX checked column, t3 - maxX checked column for filtered pixel
 # t4 - minY checked row, t5 - maxY checked row
 # t6 - X column of the currently checked pixel t7 - Y its row
+
 	sw	$s0,	idInput
 	sw	$s1,	idOutput
-	sb	$s5,	padding
-	move	$s0,	$s3	#width
-	move	$s1,	$s4	#height
-	move	$s3,	$s6	#index of top row
-	div	$s7,	$s2,	2	#half of box size
+	sw	$s5,	padding
+	move	$s0,	$s3			#width
+	move	$s1,	$s4			#height
+	move	$s3,	$s6			#index of top row
+	div	$s7,	$s2,	2		#half of box size
+	
 	li	$t0,	0
 	li	$t1,	0
 	li	$t2,	0
@@ -213,28 +210,22 @@ locate_pixel_in_box:
 	addu	$t8,	$t8,	$t6
 	mul	$t8,	$t8,	3
 check_B:
-	lb	$t9,	buf($t8)
-	sll 	$t9, 	$t9, 	24##
-	srl 	$t9, 	$t9, 	24##
+	lbu	$t9,	buf($t8)
 	bge	$t9,	$s4,	check_G
 	move	$s4,	$t9
 check_G:
 	addiu	$t8, 	$t8,	1
-	lb	$t9,	buf($t8)
-	sll 	$t9, 	$t9, 	24##
-	srl 	$t9, 	$t9, 	24##
+	lbu	$t9,	buf($t8)
 	bge	$t9,	$s5,	check_R
 	move	$s5,	$t9
 check_R:
 	addiu	$t8, 	$t8,	1
-	lb	$t9,	buf($t8)
-	sll 	$t9, 	$t9, 	24##
-	srl 	$t9, 	$t9, 	24##
+	lbu	$t9,	buf($t8)
 	bge	$t9,	$s6,	check_next_pixel
 	move	$s6,	$t9
 check_next_pixel:
 	addiu	$t6,	$t6,	1
-	addiu	$t8,	$t8,	1			# move on to the next pixel in the row, add 3 to the offset, no need to calculate the addres if we're not changing the line
+	addiu	$t8,	$t8,	1
 	ble	$t6,	$t3,	check_B
 	addiu	$t7,	$t7,	1
 	ble	$t7,	$t5,	init_X
@@ -248,32 +239,34 @@ save_pixel:
 	sb	$s6,	outBuf($t8)
 
 filter_next_pixel_x:
-	addiu	$t0,	$t0,	1			# increment X coordinate of filtered pixels
-	blt	$t0,	$s0,	min_X_c	#	if X < width then calculate maxXc and minXc, zero out max colors, Y coord stay the same
-	li	$t7,	0							# temporary variable for add_pad loop
-	lb	$t9,	padding				# load size of padding to $t9
+	addiu	$t0,	$t0,	1	# increment X coordinate of filtered pixels
+	blt	$t0,	$s0,	min_X_c	# if X < width then calculate maxXc and minXc, zero out max colors, Y coord stay the same
+	li	$t7,	0		# temporary variable for add_pad loop
+	lw	$t9,	padding		# load size of padding to $t9
 add_pad:
 	beq	$t7,	$t9,	filter_next_pixel_y
 	addiu	$t7,	$t7,	1
-	addiu	$t8, 	$t8,	1			# increment address
+	addiu	$t8, 	$t8,	1	# increment address
 	sb	$zero,	outBuf($t8)
-	j	add_pad								# repeat loop
+	j	add_pad			# repeat loop
 
 filter_next_pixel_y:
 	# load filtered line to output buffer
 	li	$v0,	15
 	lw	$a0,	idOutput
 	la	$a1,	outBuf
-	mul	$a2,	$s0,	3				# 3 * width
-	addu	$a2,	$a2,	$t9		# add padding to total length of line
+	mul	$a2,	$s0,	3	# 3 * width
+	addu	$a2,	$a2,	$t9	# add padding to total length of line
 	syscall
-	bltz	$v0,	quit				# error
+	bltz	$v0,	quit		# error
 
 	# move to next row
-	addiu	$t1,	$t1,	1			# increment Y coordinate of filtered pixels
-	beq	$t1,	$s1,	quit		# end the program if its Y is now maximal (==height)
-	li	$t0,	0							# we start in the beginning of new line
-	blt	$s7,	$t1,	min_Y_c	# don't load any new next lines into the buf
+	addiu	$t1,	$t1,	1	# increment Y coordinate of filtered pixels
+	beq	$t1,	$s1,	quit	# end the program if its Y is now maximal (==height)
+	li	$t0,	0		# we start in the beginning of new line
+	ble	$t1,	$s7,	min_Y_c	# don't load any new next lines into the buf
+	addiu	$t8,	$s3,	1
+	beq	$t8,	$s1,	min_Y_c	
 
 # load new line to input buffer
 	# calculate place for new line in input buffer
@@ -286,29 +279,29 @@ filter_next_pixel_y:
 	lw 	$a0,	idInput
 	li	$v0,	14
 	la	$a1,	buf($t8)
-	mul	$a2,	$s0,	3				# 3 * width
+	mul	$a2,	$s0,	3	# 3 * width
 	syscall
-	mul $t9,	$s0,	3				# temporary variable to check correctness of syscall
-	bne	$v0,	$t9,	quit		# error
-	addiu	$s3,	$s3,	1			# increment index of top row in input buffer
+	mul 	$t7,	$s0,	3	# temporary variable to check correctness of syscall
+	bne	$v0,	$t7,	quit	# error
+	addiu	$s3,	$s3,	1	# increment index of top row in input buffer
 
-	li	$v0,	14						# read padding
+	li	$v0,	14		# read padding
 	la	$a1,	pad
 	move	$a2,	$t9
 	syscall
-	bne	$v0,	$t9,	quit		# error
+	bne	$v0,	$t9,	quit	# error
 
-	j	min_Y_c								# start filtering new line
+	j	min_Y_c			# start filtering new line
 
 quit:
 #close_out:
-	li	$v0,	16						# close outfile
+	li	$v0,	16		# close outfile
 	lw	$a0,	idOutput
 	syscall
 close_in:
-	li	$v0,	16						# close infile
+	li	$v0,	16		# close infile
 	lw	$a0,	idInput
 	syscall
 #exit:
-	li	$v0,	10						# exit
+	li	$v0,	10		# exit
 	syscall
